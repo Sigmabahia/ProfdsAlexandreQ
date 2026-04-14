@@ -2,137 +2,193 @@ import tkinter as tk
 import requests
 import random
 
-# ================= LOGIN =================
-def entrar():
-    global usuario
-    usuario = entrada_user.get()
-    login.destroy()
-    iniciar_jogo()
+# ================= CONFIG =================
+LARGURA = 800
+ALTURA = 600
 
-login = tk.Tk()
-login.title("Login")
-login.configure(bg="black")
+# ================= APP =================
+class PongGame:
+    def __init__(self):
+        self.usuario = ""
+        self.criar_login()
 
-tk.Label(login, text="Usuário", fg="cyan", bg="black").pack()
-entrada_user = tk.Entry(login)
-entrada_user.pack()
+    # ================= LOGIN =================
+    def criar_login(self):
+        self.login = tk.Tk()
+        self.login.title("Login")
+        self.login.configure(bg="black")
 
-tk.Label(login, text="Senha", fg="cyan", bg="black").pack()
-entrada_senha = tk.Entry(login, show="*")
-entrada_senha.pack()
+        tk.Label(self.login, text="Usuário", fg="cyan", bg="black").pack()
+        self.entrada_user = tk.Entry(self.login)
+        self.entrada_user.pack()
 
-tk.Button(login, text="Entrar", command=entrar, bg="purple", fg="white").pack(pady=10)
+        tk.Label(self.login, text="Senha", fg="cyan", bg="black").pack()
+        self.entrada_senha = tk.Entry(self.login, show="*")
+        self.entrada_senha.pack()
 
-# ================= API =================
-def enviar_pontos(p1, p2):
-    try:
-        requests.post("https://httpbin.org/post", json={
-            "usuario": usuario,
-            "pontos_esq": p1,
-            "pontos_dir": p2
-        })
-    except:
-        print("Erro API")
+        tk.Button(self.login, text="Entrar", command=self.validar_login,
+                  bg="purple", fg="white").pack(pady=10)
 
-# ================= JOGO =================
-def iniciar_jogo():
-    global canvas, barra_esq, barra_dir, bola
-    global vel_bola_x, vel_bola_y, vel_esq, vel_dir
-    global pontos_esq, pontos_dir, texto
+        self.msg = tk.Label(self.login, text="", fg="red", bg="black")
+        self.msg.pack()
 
-    janela = tk.Tk()
-    janela.title("Pong Neon 80s")
+        self.login.mainloop()
 
-    canvas = tk.Canvas(janela, width=800, height=600, bg="black")
-    canvas.pack()
+    def validar_login(self):
+        user = self.entrada_user.get()
+        senha = self.entrada_senha.get()
 
-    # Linha central estilo retrô
-    for i in range(0, 600, 20):
-        canvas.create_line(400, i, 400, i+10, fill="purple")
+        if user == "" or senha == "":
+            self.msg.config(text="Preencha tudo!")
+        else:
+            self.usuario = user
+            self.login.destroy()
+            self.criar_menu()
 
-    # Barras
-    barra_esq = canvas.create_rectangle(30, 250, 40, 350, fill="cyan")
-    barra_dir = canvas.create_rectangle(760, 250, 770, 350, fill="magenta")
+    # ================= MENU =================
+    def criar_menu(self):
+        self.menu = tk.Tk()
+        self.menu.title("Menu")
+        self.menu.configure(bg="black")
 
-    # Bola
-    bola = canvas.create_oval(390, 290, 410, 310, fill="white")
+        tk.Label(self.menu, text=f"Bem-vindo, {self.usuario}",
+                 fg="cyan", bg="black", font=("Courier", 16)).pack(pady=20)
 
-    vel_bola_x = 5
-    vel_bola_y = 5
-    vel_esq = 0
-    vel_dir = 0
+        tk.Button(self.menu, text="Jogar", command=self.iniciar_jogo,
+                  bg="purple", fg="white", width=20).pack(pady=10)
 
-    pontos_esq = 0
-    pontos_dir = 0
+        tk.Button(self.menu, text="Sair", command=self.menu.destroy,
+                  bg="red", fg="white", width=20).pack(pady=10)
 
-    texto = canvas.create_text(400, 30, fill="cyan",
-                               font=("Courier", 20, "bold"),
-                               text="0 x 0")
+        self.menu.mainloop()
 
-    # CONTROLES
-    def tecla_pressionada(e):
-        global vel_esq, vel_dir
-        if e.keysym == "w": vel_esq = -8
-        if e.keysym == "s": vel_esq = 8
-        if e.keysym == "Up": vel_dir = -8
-        if e.keysym == "Down": vel_dir = 8
+    # ================= API =================
+    def enviar_pontos(self):
+        try:
+            requests.post("https://httpbin.org/post", json={
+                "usuario": self.usuario,
+                "pontos_esq": self.pontos_esq,
+                "pontos_dir": self.pontos_dir
+            })
+        except:
+            print("Erro API")
 
-    def tecla_solta(e):
-        global vel_esq, vel_dir
-        if e.keysym in ("w", "s"): vel_esq = 0
-        if e.keysym in ("Up", "Down"): vel_dir = 0
+    # ================= JOGO =================
+    def iniciar_jogo(self):
+        self.menu.destroy()
 
-    janela.bind("<KeyPress>", tecla_pressionada)
-    janela.bind("<KeyRelease>", tecla_solta)
+        self.janela = tk.Tk()
+        self.janela.title("Pong Neon 80s")
 
-    # LOOP
-    def jogo():
-        global vel_bola_x, vel_bola_y, pontos_esq, pontos_dir
+        self.canvas = tk.Canvas(self.janela, width=LARGURA, height=ALTURA, bg="black")
+        self.canvas.pack()
 
+        # Linha central
+        for i in range(0, ALTURA, 20):
+            self.canvas.create_line(400, i, 400, i+10, fill="purple")
+
+        # Objetos
+        self.barra_esq = self.canvas.create_rectangle(30, 250, 40, 350, fill="cyan")
+        self.barra_dir = self.canvas.create_rectangle(760, 250, 770, 350, fill="magenta")
+        self.bola = self.canvas.create_oval(390, 290, 410, 310, fill="white")
+
+        # Velocidade
+        self.vel_bola_x = random.choice([-5, 5])
+        self.vel_bola_y = random.choice([-5, 5])
+        self.vel_esq = 0
+        self.vel_dir = 0
+
+        # Pontos
+        self.pontos_esq = 0
+        self.pontos_dir = 0
+
+        self.texto = self.canvas.create_text(
+            400, 30, fill="cyan",
+            font=("Courier", 20, "bold"),
+            text="0 x 0"
+        )
+
+        # BOTÃO REINICIAR
+        tk.Button(self.janela, text="Reiniciar", command=self.resetar_jogo,
+                  bg="purple", fg="white").pack()
+
+        # Controles
+        self.janela.bind("<KeyPress>", self.tecla_press)
+        self.janela.bind("<KeyRelease>", self.tecla_solta)
+
+        self.loop()
+        self.janela.mainloop()
+
+    def tecla_press(self, e):
+        if e.keysym == "w": self.vel_esq = -8
+        if e.keysym == "s": self.vel_esq = 8
+        if e.keysym == "Up": self.vel_dir = -8
+        if e.keysym == "Down": self.vel_dir = 8
+
+    def tecla_solta(self, e):
+        if e.keysym in ("w", "s"): self.vel_esq = 0
+        if e.keysym in ("Up", "Down"): self.vel_dir = 0
+
+    def resetar_jogo(self):
+        self.pontos_esq = 0
+        self.pontos_dir = 0
+        self.canvas.coords(self.bola, 390, 290, 410, 310)
+
+    def limitar_barra(self, barra):
+        x1, y1, x2, y2 = self.canvas.coords(barra)
+
+        if y1 < 0:
+            self.canvas.move(barra, 0, -y1)
+        if y2 > ALTURA:
+            self.canvas.move(barra, 0, ALTURA - y2)
+
+    def loop(self):
         # Movimento
-        canvas.move(barra_esq, 0, vel_esq)
-        canvas.move(barra_dir, 0, vel_dir)
-        canvas.move(bola, vel_bola_x, vel_bola_y)
+        self.canvas.move(self.barra_esq, 0, self.vel_esq)
+        self.canvas.move(self.barra_dir, 0, self.vel_dir)
+        self.canvas.move(self.bola, self.vel_bola_x, self.vel_bola_y)
 
-        pos = canvas.coords(bola)
+        # Limites das barras
+        self.limitar_barra(self.barra_esq)
+        self.limitar_barra(self.barra_dir)
 
-        # Colisão topo
-        if pos[1] <= 0 or pos[3] >= 600:
-            vel_bola_y *= -1
+        pos = self.canvas.coords(self.bola)
 
-        # Colisão barras
-        if canvas.coords(barra_esq)[0] < pos[0] < canvas.coords(barra_esq)[2] and \
-           canvas.coords(barra_esq)[1] < pos[1] < canvas.coords(barra_esq)[3]:
-            vel_bola_x *= -1.1
+        # Topo/baixo
+        if pos[1] <= 0 or pos[3] >= ALTURA:
+            self.vel_bola_y *= -1
 
-        if canvas.coords(barra_dir)[0] < pos[2] < canvas.coords(barra_dir)[2] and \
-           canvas.coords(barra_dir)[1] < pos[3] < canvas.coords(barra_dir)[3]:
-            vel_bola_x *= -1.1
+        # Colisão com barras
+        if self.canvas.coords(self.barra_esq)[2] >= pos[0] and \
+           self.canvas.coords(self.barra_esq)[1] <= pos[1] <= self.canvas.coords(self.barra_esq)[3]:
+            self.vel_bola_x = abs(self.vel_bola_x) + 0.5
 
-        # 🟢 Gol direita (corrigido)
-        if pos[2] >= 800:
-            pontos_esq += 1
-            enviar_pontos(pontos_esq, pontos_dir)
-            canvas.coords(bola, 390, 290, 410, 310)
+        if self.canvas.coords(self.barra_dir)[0] <= pos[2] and \
+           self.canvas.coords(self.barra_dir)[1] <= pos[3] <= self.canvas.coords(self.barra_dir)[3]:
+            self.vel_bola_x = -abs(self.vel_bola_x) - 0.5
 
-            vel_bola_x = random.choice([-5, 5])
-            vel_bola_y = random.choice([-5, 5])
+        # Gol
+        if pos[2] >= LARGURA:
+            self.pontos_esq += 1
+            self.enviar_pontos()
+            self.reset_bola()
 
-        # 🟢 Gol esquerda (corrigido)
         if pos[0] <= 0:
-            pontos_dir += 1
-            enviar_pontos(pontos_esq, pontos_dir)
-            canvas.coords(bola, 390, 290, 410, 310)
-
-            vel_bola_x = random.choice([-5, 5])
-            vel_bola_y = random.choice([-5, 5])
+            self.pontos_dir += 1
+            self.enviar_pontos()
+            self.reset_bola()
 
         # Atualiza placar
-        canvas.itemconfig(texto, text=f"{pontos_esq} x {pontos_dir}")
+        self.canvas.itemconfig(self.texto,
+                               text=f"{self.pontos_esq} x {self.pontos_dir}")
 
-        janela.after(16, jogo)
+        self.janela.after(16, self.loop)
 
-    jogo()
-    janela.mainloop()
+    def reset_bola(self):
+        self.canvas.coords(self.bola, 390, 290, 410, 310)
+        self.vel_bola_x = random.choice([-5, 5])
+        self.vel_bola_y = random.choice([-5, 5])
 
-login.mainloop()
+
+# ================= EXECUTAR =================
+PongGame()
